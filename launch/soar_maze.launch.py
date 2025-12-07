@@ -1,12 +1,8 @@
-#!/usr/bin/env python3
-
-# Launch file for ROSbot XL with autonomy configuration (LiDAR + Camera) in empty Gazebo world
-
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, EnvironmentVariable
 from launch_ros.actions import Node, SetParameter, SetRemap
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
@@ -23,17 +19,35 @@ def generate_launch_description():
         choices=["True", "true", "False", "false"],
     )
 
-    # Use ros_gz_sim to launch Gazebo properly
+    # Set GZ_SIM_RESOURCE_PATH to include our models directory
+    models_path = PathJoinSubstitution(
+        [FindPackageShare("soar_rosbot_ros"), "models"]
+    )
+
+    set_gazebo_model_path = SetEnvironmentVariable(
+        name='GZ_SIM_RESOURCE_PATH',
+        value=[
+            EnvironmentVariable('GZ_SIM_RESOURCE_PATH', default_value=''),
+            os.pathsep,
+            models_path
+        ]
+    )
+
+    # Get path to custom maze world
+    maze_world_path = PathJoinSubstitution(
+        [FindPackageShare("soar_rosbot_ros"), "worlds", "maze_world.sdf"]
+    )
+
+    # Use husarion_gz_worlds wrapper to launch Gazebo with custom maze world
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory('ros_gz_sim'),
-                'launch',
-                'gz_sim.launch.py'
+            PathJoinSubstitution(
+                [FindPackageShare("husarion_gz_worlds"), "launch", "gz_sim.launch.py"]
             )
         ),
         launch_arguments={
-            'gz_args': '-r -v 4 empty.sdf'
+            'gz_world': maze_world_path,
+            'gz_log_level': '1'
         }.items()
     )
 
@@ -63,7 +77,7 @@ def generate_launch_description():
             "robot_model": "rosbot_xl",
             "configuration": "autonomy",
             "x": "0.0",
-            "y": "0.0",
+            "y": "4.0",
             "z": "0.2",
         }.items(),
     )
@@ -86,6 +100,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
             declare_rviz_arg,
+            set_gazebo_model_path,  # Set GZ_SIM_RESOURCE_PATH before launching Gazebo
             SetRemap("/diagnostics", "diagnostics"),
             SetRemap("/tf", "tf"),
             SetRemap("/tf_static", "tf_static"),
