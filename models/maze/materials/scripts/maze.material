@@ -1,0 +1,14 @@
+material Maze/Bush
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture bush-texture.jpg
+        filtering trilinear
+      }
+    }
+  }
+}
