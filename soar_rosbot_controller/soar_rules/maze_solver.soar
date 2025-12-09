@@ -1,0 +1,104 @@
+###############################################################################
+# Maze Solver - Right-hand wall following algorithm
+###############################################################################
+
+# Initialize state
+sp {elaborate*state*name
+   (state <s> ^superstate nil)
+-->
+   (<s> ^name maze-solver)
+}
+
+###############################################################################
+# Operators for movement
+###############################################################################
+
+# Operator: move-forward
+sp {propose*move-forward
+   (state <s> ^name maze-solver
+              ^io.input-link.walls.front 0)  # No wall in front
+   -(<s> ^io.input-link.aruco.detected 1)   # ArUco not detected
+-->
+   (<s> ^operator <o> + =)
+   (<o> ^name move-forward)
+}
+
+# Operator: turn-right
+sp {propose*turn-right
+   (state <s> ^name maze-solver
+              ^io.input-link.walls.right 0)  # No wall on right
+   -(<s> ^io.input-link.aruco.detected 1)   # ArUco not detected
+-->
+   (<s> ^operator <o> + >)  # Higher preference than forward
+   (<o> ^name turn-right)
+}
+
+# Operator: turn-left
+sp {propose*turn-left
+   (state <s> ^name maze-solver
+              ^io.input-link.walls.front 1   # Wall in front
+              ^io.input-link.walls.left 0)   # No wall on left
+   -(<s> ^io.input-link.aruco.detected 1)   # ArUco not detected
+-->
+   (<s> ^operator <o> + =)
+   (<o> ^name turn-left)
+}
+
+# Operator: turn-around (when blocked on 3 sides)
+sp {propose*turn-around
+   (state <s> ^name maze-solver
+              ^io.input-link.walls.front 1   # Wall in front
+              ^io.input-link.walls.left 1    # Wall on left
+              ^io.input-link.walls.right 1)  # Wall on right
+   -(<s> ^io.input-link.aruco.detected 1)   # ArUco not detected
+-->
+   (<s> ^operator <o> + =)
+   (<o> ^name turn-around)
+}
+
+# Operator: approach-goal (when ArUco detected but far)
+sp {propose*approach-goal
+   (state <s> ^name maze-solver
+              ^io.input-link.aruco <aruco>)
+   (<aruco> ^detected 1
+            ^distance > 0.5)  # More than 0.5m away
+-->
+   (<s> ^operator <o> + >)  # High preference
+   (<o> ^name approach-goal)
+}
+
+# Operator: stop-at-goal (when ArUco detected and close)
+sp {propose*stop-at-goal
+   (state <s> ^name maze-solver
+              ^io.input-link.aruco <aruco>)
+   (<aruco> ^detected 1
+            ^distance <= 0.5)  # Within 0.5m
+-->
+   (<s> ^operator <o> + >>)  # Highest preference
+   (<o> ^name stop-at-goal)
+}
+
+###############################################################################
+# Apply operators - Send commands to output-link
+###############################################################################
+
+sp {apply*movement*command
+   (state <s> ^operator <o>
+              ^io.output-link <ol>)
+   (<o> ^name <command-name>)
+-->
+   (<ol> ^command <cmd>)
+   (<cmd> ^name <command-name>)
+}
+
+###############################################################################
+# Clean up output-link after command is sent
+###############################################################################
+
+sp {clean*output-link
+   (state <s> ^io.output-link <ol>)
+   (<ol> ^command <cmd>)
+   (<cmd> ^status complete)
+-->
+   (<ol> ^command <cmd> -)
+}

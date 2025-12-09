@@ -1,0 +1,9 @@
+###############################################################################
+# Main Soar Rules Entry Point
+###############################################################################
+
+# Source the maze solver rules
+source maze_solver.soar
+
+# Set Soar parameters
+watch 0
