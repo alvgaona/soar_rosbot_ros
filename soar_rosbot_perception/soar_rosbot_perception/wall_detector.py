@@ -5,7 +5,6 @@ from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from std_msgs.msg import Bool
 import math
-import numpy as np
 
 
 class WallDetector(Node):
@@ -13,8 +12,8 @@ class WallDetector(Node):
         super().__init__('wall_detector')
 
         # Parameters
-        self.declare_parameter('wall_threshold', 0.5)  # Distance in meters to consider a wall
-        self.declare_parameter('cone_angle', 10.0)  # Cone angle in degrees (±5° from center)
+        self.declare_parameter('wall_threshold', 2.15)  # Distance in meters to consider a wall
+        self.declare_parameter('cone_angle', 5.0)  # Cone angle in degrees (±5° from center)
 
         self.wall_threshold = self.get_parameter('wall_threshold').value
         self.cone_angle = self.get_parameter('cone_angle').value
@@ -88,34 +87,34 @@ class WallDetector(Node):
 
         # Use minimum distance in the cone
         min_distance = min(readings)
+        
+        # Detect wall if threshold is crossed and enough readings are present
+        wall_detected = (min_distance < self.wall_threshold and len(readings) > 3)
 
-        return min_distance < self.wall_threshold
+        return wall_detected
 
     def scan_callback(self, msg):
         """Process laser scan and detect walls in all four directions"""
 
-        # Detect walls in each direction
-        front_readings = self.get_cone_readings(msg, 0.0)    # Front: 0°
-        left_readings = self.get_cone_readings(msg, 90.0)    # Left: 90°
-        right_readings = self.get_cone_readings(msg, -90.0)  # Right: -90°
-        back_readings = self.get_cone_readings(msg, 180.0)   # Back: 180°
+        # LiDAR frame on the robot is 180° rotated from the base link (robot) frame.
+        front_readings = self.get_cone_readings(msg, 180.0)   # Front (Robot) is 180° (LiDAR)
+        left_readings = self.get_cone_readings(msg, -90.0)    # Left (Robot) is -90° (LiDAR)
+        right_readings = self.get_cone_readings(msg, 90.0)    # Right (Robot) is 90° (LiDAR)
 
         # Detect walls
         front_wall = self.detect_wall(front_readings)
         left_wall = self.detect_wall(left_readings)
         right_wall = self.detect_wall(right_readings)
-        back_wall = self.detect_wall(back_readings)
 
         # Publish results
         self.front_wall_pub.publish(Bool(data=front_wall))
         self.left_wall_pub.publish(Bool(data=left_wall))
         self.right_wall_pub.publish(Bool(data=right_wall))
-        self.back_wall_pub.publish(Bool(data=back_wall))
 
         # Log for debugging (can be commented out later)
         self.get_logger().debug(
             f'Walls - Front: {front_wall}, Left: {left_wall}, '
-            f'Right: {right_wall}, Back: {back_wall}'
+            f'Right: {right_wall}'
         )
 
 
