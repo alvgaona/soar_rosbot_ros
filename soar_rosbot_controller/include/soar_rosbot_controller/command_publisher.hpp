@@ -21,11 +21,9 @@ public:
 
         // Get command name from Soar output-link
         const char * command_name = id->GetParameterValue("name");
-        if (command_name != nullptr) {
-            msg.data = command_name;
-        } else {
-            msg.data = "stop";  // Default to stop if no command specified
-        }
+        
+        // TODO: if command_name is nullptr, ignore or handle error
+        msg.data = command_name;
 
         RCLCPP_INFO(
             m_node->get_logger(),

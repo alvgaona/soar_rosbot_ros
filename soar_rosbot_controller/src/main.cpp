@@ -4,7 +4,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
-#include "soar_ros.hpp"
+#include "soar_ros/SoarRunner.hpp"
+#include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "soar_rosbot_controller/perception_subscribers.hpp"
@@ -56,20 +57,20 @@ int main(int argc, char ** argv)
     node,
     "/soar/command");
   // Register with Soar command name "command" to match (<ol> ^command ...)
-  node->addPublisher(command_publisher, "command");
+  node->addPublisher<std_msgs::msg::String>(command_publisher, "command");
 
   // Create ArUco subscribers (share WME pointers for coordinated updates)
   auto aruco_detected_sub = std::make_shared<soar_rosbot_controller::ArUcoDetectedSubscriber>(
     node->getAgent(),
     node,
     "/aruco/detected");
-  node->addSubscriber(aruco_detected_sub);
+  node->addSubscriber<std_msgs::msg::Bool>(aruco_detected_sub);
 
   auto aruco_distance_sub = std::make_shared<soar_rosbot_controller::ArUcoDistanceSubscriber>(
     node->getAgent(),
-    rcl_node_get_rmw_handle,
+    node,
     "/aruco/distance");
-  node->addSubscribe(aruco_distance_sub);
+  node->addSubscriber<std_msgs::msg::Float32>(aruco_distance_sub);
 
   // Start Soar kernel thread
   node->startThread();

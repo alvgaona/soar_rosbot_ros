@@ -41,10 +41,8 @@ public:
   ArUcoDistanceSubscriber(
     sml::Agent * agent,
     rclcpp::Node::SharedPtr node,
-    const std::string & topic,
-  : Subscriber<std_msgs::msg::Float32>(agent, node, topic),
-    aruco_wme_(nullptr),
-  {}
+    const std::string & topic)
+  : Subscriber<std_msgs::msg::Float32>(agent, node, topic) {}
 
   void parse(std_msgs::msg::Float32 msg) override
   {
