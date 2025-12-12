@@ -10,7 +10,7 @@ MotionController::MotionController()
 : Node("motion_controller"), last_command_("")
 {
   // Declare and get kinematics type parameter
-  this->declare_parameter("holonomic", false);
+  this->declare_parameter("holonomic", true);
   is_holonomic_ = this->get_parameter("holonomic").as_bool();
 
   // Declare velocity parameters
@@ -66,21 +66,15 @@ void MotionController::initializeCommandMappings()
     command_map_["move-backward"] = {-linear_vel_forward, 0.0, 0.0};
     command_map_["strafe-left"] = {0.0, linear_vel_forward, 0.0};
     command_map_["strafe-right"] = {0.0, -linear_vel_forward, 0.0};
-    command_map_["turn-right"] = {0.0, 0.0, -angular_vel_turn};
-    command_map_["turn-left"] = {0.0, 0.0, angular_vel_turn};
-    command_map_["turn-around"] = {0.0, 0.0, angular_vel_turn_around};
-    command_map_["approach-goal"] = {linear_vel_approach, 0.0, 0.0};
+    command_map_["turn-cw"] = {0.0, 0.0, -angular_vel_turn};
+    command_map_["turn-ccw"] = {0.0, 0.0, angular_vel_turn};
     command_map_["stop"] = {0.0, 0.0, 0.0};
-    command_map_["stop-at-goal"] = {0.0, 0.0, 0.0};
   } else {
     command_map_["move-forward"] = {linear_vel_forward, 0.0, 0.0};
     command_map_["move-backward"] = {-linear_vel_forward, 0.0, 0.0};
-    command_map_["turn-right"] = {0.0, 0.0, -angular_vel_turn};
-    command_map_["turn-left"] = {0.0, 0.0, angular_vel_turn};
-    command_map_["turn-around"] = {0.0, 0.0, angular_vel_turn_around};
-    command_map_["approach-goal"] = {linear_vel_approach, 0.0, 0.0};
+    command_map_["turn-cw"] = {0.0, 0.0, -angular_vel_turn};
+    command_map_["turn-ccw"] = {0.0, 0.0, angular_vel_turn};
     command_map_["stop"] = {0.0, 0.0, 0.0};
-    command_map_["stop-at-goal"] = {0.0, 0.0, 0.0};
   }
 }
 
@@ -99,12 +93,11 @@ void MotionController::commandCallback(const std_msgs::msg::String::SharedPtr ms
   velocity_stamped.header.frame_id = "base_link";
   velocity_stamped.twist = velocity;
 
-  // Publish velocity
   velocity_pub_->publish(velocity_stamped);
 
   // Log only when command changes
   if (command != last_command_) {
-    RCLCPP_INFO(
+    RCLCPP_DEBUG(
       this->get_logger(),
       "Command changed to: %s - Publishing velocity: linear.x=%.2f, linear.y=%.2f, angular.z=%.2f",
       command.c_str(), velocity.linear.x, velocity.linear.y, velocity.angular.z);
