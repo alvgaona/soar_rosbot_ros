@@ -1,0 +1,150 @@
+###############################################################################
+# Target Distance Approach
+#
+# Behavior:
+# - When ArUco tag is detected AND distance > 3.0m: move forward
+# - When ArUco tag is detected AND distance <= 3.0m: stop (target reached)
+# - When ArUco tag is NOT detected: stop
+###############################################################################
+
+###############################################################################
+# Initialize state with o-support (persistent)
+###############################################################################
+
+sp {propose*init-agent
+   (state <s> ^superstate nil
+             -^name)
+-->
+   (<s> ^operator <o> +)
+   (<o> ^name init-agent)
+}
+
+sp {apply*init-agent
+   (state <s> ^operator.name init-agent)
+-->
+   (<s> ^name target-distance-approach)
+}
+
+###############################################################################
+# Wait operator - handles state no-change impasse
+###############################################################################
+
+sp {propose*wait
+   (state <s> ^attribute state
+              ^choices none
+             -^operator.name wait)
+-->
+   (<s> ^operator <o>)
+   (<o> ^name wait)
+}
+
+sp {apply*wait
+   (state <s> ^operator <o>)
+   (<o> ^name wait)
+-->
+   (<o> ^random elaboration)
+}
+
+sp {prefer*others*over*wait
+   (state <s> ^operator <o1> +
+              ^operator <o2> +)
+   (<o1> ^name <> wait)
+   (<o2> ^name wait)
+-->
+   (<s> ^operator <o1> > <o2>)
+}
+
+###############################################################################
+# Operators
+###############################################################################
+
+# Propose move-forward when ArUco is detected AND distance > 3.0m
+sp {propose*move-forward
+   (state <s> ^name target-distance-approach
+              ^io.input-link.aruco <aruco>)
+   (<aruco> ^detected 1
+            ^distance <dist>)
+   (<dist> > 3.0)
+-->
+   (<s> ^operator <o> +)
+   (<o> ^name move-forward)
+}
+
+# Propose stop when ArUco is detected BUT distance <= 3.0m (target reached)
+sp {propose*stop*target-reached
+   (state <s> ^name target-distance-approach
+              ^io.input-link.aruco <aruco>)
+   (<aruco> ^detected 1
+            ^distance <dist>)
+   (<dist> <= 3.0)
+-->
+   (<s> ^operator <o> +)
+   (<o> ^name stop)
+}
+
+# Propose stop when ArUco is NOT detected
+sp {propose*stop*not-detected
+   (state <s> ^name target-distance-approach
+              ^io.input-link.aruco.detected 0)
+-->
+   (<s> ^operator <o> +)
+   (<o> ^name stop)
+}
+
+###############################################################################
+# Apply operators - Send commands to output-link
+# Only create command if no command with same name exists
+###############################################################################
+
+sp {apply*move-forward
+   (state <s> ^operator <o>
+              ^io.output-link <ol>)
+   (<o> ^name move-forward)
+  -(<ol> ^command.name move-forward)
+-->
+   (<ol> ^command <cmd>)
+   (<cmd> ^name move-forward)
+}
+
+sp {apply*stop
+   (state <s> ^operator <o>
+              ^io.output-link <ol>)
+   (<o> ^name stop)
+  -(<ol> ^command.name stop)
+-->
+   (<ol> ^command <cmd>)
+   (<cmd> ^name stop)
+}
+
+###############################################################################
+# Remove commands - completed or wrong type for current operator
+###############################################################################
+
+sp {apply*move-forward*remove-stop
+   (state <s> ^operator <o>
+              ^io.output-link <ol>)
+   (<o> ^name move-forward)
+   (<ol> ^command <cmd>)
+   (<cmd> ^name stop)
+-->
+   (<ol> ^command <cmd> -)
+}
+
+sp {apply*stop*remove-move-forward
+   (state <s> ^operator <o>
+              ^io.output-link <ol>)
+   (<o> ^name stop)
+   (<ol> ^command <cmd>)
+   (<cmd> ^name move-forward)
+-->
+   (<ol> ^command <cmd> -)
+}
+
+sp {apply*remove-completed-command
+   (state <s> ^operator <o>
+              ^io.output-link <ol>)
+   (<ol> ^command <cmd>)
+   (<cmd> ^status complete)
+-->
+   (<ol> ^command <cmd> -)
+}

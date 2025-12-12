@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from std_msgs.msg import Bool, Float32
+from soar_rosbot_msgs.msg import ArucoDetection
 from cv_bridge import CvBridge
 import cv2
 import numpy as np
@@ -77,9 +77,8 @@ class ArucoDetector(Node):
             10
         )
 
-        # Publishers
-        self.detected_pub = self.create_publisher(Bool, '/aruco/detected', 10)
-        self.distance_pub = self.create_publisher(Float32, '/aruco/distance', 10)
+        # Publisher
+        self.aruco_pub = self.create_publisher(ArucoDetection, '/aruco/detection', 10)
 
         self.get_logger().info(
             f'ArUco detector initialized - Dictionary: {aruco_dict_name}, '
@@ -146,13 +145,14 @@ class ArucoDetector(Node):
             # Check if any markers were detected
             if ids is not None and len(ids) > 0:
                 # Marker detected
-                self.detected_pub.publish(Bool(data=True))
-
                 # Estimate distance to the first detected marker
                 distance = self.estimate_distance(corners[0])
 
                 if distance is not None:
-                    self.distance_pub.publish(Float32(data=float(distance)))
+                    msg = ArucoDetection()
+                    msg.detected = True
+                    msg.distance = float(distance)
+                    self.aruco_pub.publish(msg)
                     self.get_logger().debug(
                         f'ArUco marker {ids[0][0]} detected at {distance:.3f}m'
                     )
@@ -160,8 +160,10 @@ class ArucoDetector(Node):
                     self.get_logger().warn('Failed to estimate distance')
             else:
                 # No marker detected
-                self.detected_pub.publish(Bool(data=False))
-                self.distance_pub.publish(Float32(data=0.0))
+                msg = ArucoDetection()
+                msg.detected = False
+                msg.distance = 0.0
+                self.aruco_pub.publish(msg)
 
         except Exception as e:
             self.get_logger().error(f'Error processing image: {str(e)}')

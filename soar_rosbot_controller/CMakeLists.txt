@@ -13,6 +13,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(soar_ros REQUIRED)
+find_package(soar_rosbot_msgs REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
@@ -20,6 +21,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   std_msgs
   geometry_msgs
   soar_ros
+  soar_rosbot_msgs
   ament_index_cpp
 )
 

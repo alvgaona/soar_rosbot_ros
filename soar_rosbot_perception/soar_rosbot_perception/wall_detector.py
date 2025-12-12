@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Bool
+from soar_rosbot_msgs.msg import WallDetection
 import math
 
 
@@ -26,11 +26,8 @@ class WallDetector(Node):
             10
         )
 
-        # Publishers for each wall direction
-        self.front_wall_pub = self.create_publisher(Bool, '/wall/front', 10)
-        self.left_wall_pub = self.create_publisher(Bool, '/wall/left', 10)
-        self.right_wall_pub = self.create_publisher(Bool, '/wall/right', 10)
-        self.back_wall_pub = self.create_publisher(Bool, '/wall/back', 10)
+        # Publisher
+        self.wall_pub = self.create_publisher(WallDetection, '/wall/detection', 10)
 
         self.get_logger().info(f'Wall detector initialized with threshold: {self.wall_threshold} m, cone: {self.cone_angle}°')
 
@@ -106,10 +103,13 @@ class WallDetector(Node):
         left_wall = self.detect_wall(left_readings)
         right_wall = self.detect_wall(right_readings)
 
-        # Publish results
-        self.front_wall_pub.publish(Bool(data=front_wall))
-        self.left_wall_pub.publish(Bool(data=left_wall))
-        self.right_wall_pub.publish(Bool(data=right_wall))
+        # Publish unified wall detection message
+        msg = WallDetection()
+        msg.front = front_wall
+        msg.left = left_wall
+        msg.right = right_wall
+        msg.back = False  # Not currently detecting back wall
+        self.wall_pub.publish(msg)
 
         # Log for debugging (can be commented out later)
         self.get_logger().debug(
