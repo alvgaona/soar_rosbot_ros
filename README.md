@@ -1,5 +1,11 @@
 # Soar ROSbot Maze
 
+## Prerequisites
+
+- Ubuntu 24.04 (noble)
+- ROS 2 Jazzy
+- Gazebo Harmonic
+
 ## Getting Started
 
 The standard way of working with ROS 2 is to create your application workspace.
