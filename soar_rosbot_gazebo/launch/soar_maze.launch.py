@@ -76,13 +76,16 @@ def generate_launch_description():
         launch_arguments={
             "robot_model": "rosbot_xl",
             "configuration": "autonomy",
-            "x": "0.0",
-            "y": "4.0",
+            "x": "28.0",
+            "y": "50.0",
             "z": "0.2",
         }.items(),
     )
 
-    # Optional RViz
+    # Optional RViz with custom configuration
+    rviz_config = PathJoinSubstitution(
+        [FindPackageShare("soar_rosbot_gazebo"), "config", "rosbot.rviz"]
+    )
     rviz_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution(
@@ -93,7 +96,10 @@ def generate_launch_description():
                 ]
             )
         ),
-        launch_arguments={"namespace": ""}.items(),
+        launch_arguments={
+            "rviz_config": rviz_config,
+            "use_sim": "True",
+        }.items(),
         condition=IfCondition(rviz),
     )
 
