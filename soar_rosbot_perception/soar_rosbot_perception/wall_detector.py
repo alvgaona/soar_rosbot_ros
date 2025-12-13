@@ -12,10 +12,12 @@ class WallDetector(Node):
         super().__init__('wall_detector')
 
         # Parameters
-        self.declare_parameter('wall_threshold', 2.15)  # Distance in meters to consider a wall
+        self.declare_parameter('front_wall_threshold', 2.5)
+        self.declare_parameter('side_wall_threshold', 4.0)
         self.declare_parameter('cone_angle', 5.0)  # Cone angle in degrees (±5° from center)
 
-        self.wall_threshold = self.get_parameter('wall_threshold').value
+        self.front_wall_threshold = self.get_parameter('front_wall_threshold').value
+        self.side_wall_threshold = self.get_parameter('side_wall_threshold').value
         self.cone_angle = self.get_parameter('cone_angle').value
 
         # Subscriber
@@ -29,7 +31,10 @@ class WallDetector(Node):
         # Publisher
         self.wall_pub = self.create_publisher(WallDetection, '/wall/detection', 10)
 
-        self.get_logger().info(f'Wall detector initialized with threshold: {self.wall_threshold} m, cone: {self.cone_angle}°')
+        self.get_logger().info(
+            f'Wall detector initialized - Front threshold: {self.front_wall_threshold}m, '
+            f'Side threshold: {self.side_wall_threshold}m, Cone: {self.cone_angle}°'
+        )
 
     def normalize_angle(self, angle):
         """Normalize angle to [-pi, pi]"""
@@ -69,12 +74,13 @@ class WallDetector(Node):
 
         return readings
 
-    def detect_wall(self, readings):
+    def detect_wall(self, readings, threshold):
         """
         Determine if a wall is present based on cone readings
 
         Args:
             readings: List of range values
+            threshold: Distance threshold in meters for wall detection
 
         Returns:
             Tuple of (wall_detected: bool, distance: float)
@@ -88,7 +94,7 @@ class WallDetector(Node):
         min_distance = min(readings)
 
         # Detect wall if threshold is crossed and enough readings are present
-        wall_detected = (min_distance < self.wall_threshold and len(readings) > 3)
+        wall_detected = (min_distance < threshold and len(readings) > 3)
 
         return (wall_detected, min_distance if wall_detected else 0.0)
 
@@ -100,9 +106,10 @@ class WallDetector(Node):
         left_readings = self.get_cone_readings(msg, -90.0)    # Left (Robot) is -90° (LiDAR)
         right_readings = self.get_cone_readings(msg, 90.0)    # Right (Robot) is 90° (LiDAR)
 
-        front_wall, front_distance = self.detect_wall(front_readings)
-        left_wall, left_distance = self.detect_wall(left_readings)
-        right_wall, right_distance = self.detect_wall(right_readings)
+        # Detect walls with appropriate thresholds
+        front_wall, front_distance = self.detect_wall(front_readings, self.front_wall_threshold)
+        left_wall, left_distance = self.detect_wall(left_readings, self.side_wall_threshold)
+        right_wall, right_distance = self.detect_wall(right_readings, self.side_wall_threshold)
 
         # Publish unified wall detection message
         detection_msg = WallDetection()

@@ -6,7 +6,8 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 def generate_launch_description():
     # Launch configuration
     cone_angle = LaunchConfiguration("cone_angle")
-    wall_threshold = LaunchConfiguration("wall_threshold")
+    front_wall_threshold = LaunchConfiguration("front_wall_threshold")
+    side_wall_threshold = LaunchConfiguration("side_wall_threshold")
     marker_size = LaunchConfiguration("marker_size")
     aruco_dict = LaunchConfiguration("aruco_dict")
     image_topic = LaunchConfiguration("image_topic")
@@ -14,13 +15,16 @@ def generate_launch_description():
     camera_fy = LaunchConfiguration("camera_fy")
     camera_cx = LaunchConfiguration("camera_cx")
     camera_cy = LaunchConfiguration("camera_cy")
-    
+
     # Declare launch arguments
     declare_cone_angle_arg = DeclareLaunchArgument(
-        "cone_angle", default_value="10.0", description="Cone angle for wall detection"
+        "cone_angle", default_value="5.0", description="Cone angle for wall detection (degrees)"
     )
-    declare_wall_threshold_arg = DeclareLaunchArgument(
-        "wall_threshold", default_value="2.5", description="Wall detection distance threshold in"
+    declare_front_wall_threshold_arg = DeclareLaunchArgument(
+        "front_wall_threshold", default_value="2.5", description="Front wall detection distance threshold (meters)"
+    )
+    declare_side_wall_threshold_arg = DeclareLaunchArgument(
+        "side_wall_threshold", default_value="4.0", description="Side wall detection distance threshold (meters)"
     )
 
     declare_marker_size_arg = DeclareLaunchArgument(
@@ -57,8 +61,9 @@ def generate_launch_description():
         executable="wall_detector",
         name="wall_detector",
         parameters=[
-            {"wall_threshold": wall_threshold},  # Wall detection threshold
-            {"cone_angle": cone_angle},          # Cone angle for wall detection
+            {"front_wall_threshold": front_wall_threshold},  # Front wall detection threshold
+            {"side_wall_threshold": side_wall_threshold},    # Side wall detection threshold
+            {"cone_angle": cone_angle},                      # Cone angle for wall detection
         ],
         output="screen",
     )
@@ -83,7 +88,8 @@ def generate_launch_description():
     return LaunchDescription(
         [
             declare_cone_angle_arg,
-            declare_wall_threshold_arg,
+            declare_front_wall_threshold_arg,
+            declare_side_wall_threshold_arg,
             declare_marker_size_arg,
             declare_aruco_dict_arg,
             declare_image_topic_arg,
