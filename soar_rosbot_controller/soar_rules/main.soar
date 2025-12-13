@@ -1,5 +1,5 @@
 # Source our rules
-source target_distance_approach.soar
+source front_wall_turn.soar
 
 # Set Soar parameters
 watch 1
