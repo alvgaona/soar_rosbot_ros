@@ -10,12 +10,6 @@
 namespace soar_rosbot_controller
 {
 
-/**
- * @brief Simple test node that observes and publishes robot yaw orientation from TF
- *
- * Reads the odom->base_link transform and publishes the yaw angle
- * to /robot/yaw at 10 Hz.
- */
 class YawObserver : public rclcpp::Node
 {
 public:
@@ -23,9 +17,6 @@ public:
   ~YawObserver() = default;
 
 private:
-  /**
-   * @brief Timer callback to publish yaw from TF
-   */
   void publishYaw();
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;

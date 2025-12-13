@@ -1,5 +1,4 @@
-#ifndef SOAR_ROSBOT_CONTROLLER__COMMAND_PUBLISHER_HPP_
-#define SOAR_ROSBOT_CONTROLLER__COMMAND_PUBLISHER_HPP_
+#pragma once
 
 #include "soar_ros/Publisher.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -34,5 +33,3 @@ public:
 };
 
 } // namespace soar_rosbot_controller
-
-#endif // SOAR_ROSBOT_CONTROLLER__COMMAND_PUBLISHER_HPP_
