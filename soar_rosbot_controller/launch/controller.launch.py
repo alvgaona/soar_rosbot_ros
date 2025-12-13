@@ -32,7 +32,16 @@ def generate_launch_description():
             {"holonomic": False},  # False for differential drive
         ],
         output="screen",
-        # arguments=['--ros-args', '--log-level', log_level],
+        arguments=['--ros-args', '--log-level', log_level],
+    )
+
+    # Yaw observer node
+    yaw_observer = Node(
+        package="soar_rosbot_controller",
+        executable="yaw_observer",
+        name="yaw_observer",
+        output="screen",
+        arguments=['--ros-args', '--log-level', log_level],
     )
 
     return LaunchDescription(
@@ -40,5 +49,6 @@ def generate_launch_description():
             declare_log_level,
             soar_controller,
             motion_controller,
+            yaw_observer,
         ]
     )
