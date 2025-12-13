@@ -1,5 +1,4 @@
-#ifndef SOAR_ROSBOT_CONTROLLER__MOTION_CONTROLLER_HPP_
-#define SOAR_ROSBOT_CONTROLLER__MOTION_CONTROLLER_HPP_
+#pragma once
 
 #include <memory>
 #include <string>
@@ -9,6 +8,7 @@
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float64.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
+#include "soar_rosbot_msgs/msg/wall_detection.hpp"
 
 namespace soar_rosbot_controller
 {
@@ -47,6 +47,11 @@ private:
   void yawCallback(const std_msgs::msg::Float64::SharedPtr msg);
 
   /**
+   * @brief Callback for wall detection updates
+   */
+  void wallCallback(const soar_rosbot_msgs::msg::WallDetection::SharedPtr msg);
+
+  /**
    * @brief Start a rotation to reach target yaw
    */
   void startRotation(double target_yaw, double angular_velocity);
@@ -72,6 +77,9 @@ private:
   // Subscriber for yaw from yaw_observer
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr yaw_sub_;
 
+  // Subscriber for wall detection
+  rclcpp::Subscription<soar_rosbot_msgs::msg::WallDetection>::SharedPtr wall_sub_;
+
   // Publisher for velocity commands
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr velocity_pub_;
 
@@ -81,6 +89,11 @@ private:
   // Current yaw from yaw_observer
   double current_yaw_;
   bool yaw_received_;
+
+  // Safety: Front wall distance
+  double front_wall_distance_;
+  bool wall_data_received_;
+  static constexpr double SAFETY_DISTANCE_THRESHOLD = 2.0;  // meters
 
   // Rotation state
   struct RotationState {
@@ -105,5 +118,3 @@ private:
 };
 
 }  // namespace soar_rosbot_controller
-
-#endif  // SOAR_ROSBOT_CONTROLLER__MOTION_CONTROLLER_HPP_

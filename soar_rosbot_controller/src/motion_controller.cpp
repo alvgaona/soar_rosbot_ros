@@ -8,7 +8,8 @@ namespace soar_rosbot_controller
 {
 
 MotionController::MotionController()
-: Node("motion_controller"), last_command_(""), current_yaw_(0.0), yaw_received_(false)
+: Node("motion_controller"), last_command_(""), current_yaw_(0.0), yaw_received_(false),
+  front_wall_distance_(0.0), wall_data_received_(false)
 {
   // Declare and get kinematics type parameter
   this->declare_parameter("holonomic", true);
@@ -39,6 +40,11 @@ MotionController::MotionController()
     "/rosbot/yaw", 10,
     [this](const std_msgs::msg::Float64::SharedPtr msg) { yawCallback(msg); });
 
+  // Create subscriber for wall detection
+  wall_sub_ = this->create_subscription<soar_rosbot_msgs::msg::WallDetection>(
+    "/wall/detection", 10,
+    [this](const soar_rosbot_msgs::msg::WallDetection::SharedPtr msg) { wallCallback(msg); });
+
   // Create publisher for velocity commands
   velocity_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 10);
 
@@ -48,6 +54,8 @@ MotionController::MotionController()
     is_holonomic_ ? "Holonomic" : "Non-holonomic");
   RCLCPP_INFO(this->get_logger(), "Listening for commands on /soar/command");
   RCLCPP_INFO(this->get_logger(), "Subscribing to /rosbot/yaw for rotation control");
+  RCLCPP_INFO(this->get_logger(), "Subscribing to /wall/detection for safety monitoring");
+  RCLCPP_INFO(this->get_logger(), "Safety policy: Stop if front wall < %.2fm", SAFETY_DISTANCE_THRESHOLD);
   RCLCPP_INFO(this->get_logger(), "Publishing velocities to /cmd_vel");
 }
 
@@ -130,6 +138,25 @@ void MotionController::commandCallback(const std_msgs::msg::String::SharedPtr ms
     return;
   }
 
+  // SAFETY POLICY: Stop if trying to move forward and front wall is too close
+  if (command == "move-forward" && wall_data_received_) {
+    if (front_wall_distance_ > 0.0 && front_wall_distance_ < SAFETY_DISTANCE_THRESHOLD) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "SAFETY: Rejecting move-forward command - front wall too close (%.2fm < %.2fm threshold)",
+        front_wall_distance_, SAFETY_DISTANCE_THRESHOLD);
+      // Send stop command instead
+      geometry_msgs::msg::TwistStamped stop_cmd;
+      stop_cmd.header.stamp = this->now();
+      stop_cmd.header.frame_id = "base_link";
+      stop_cmd.twist.linear.x = 0.0;
+      stop_cmd.twist.linear.y = 0.0;
+      stop_cmd.twist.angular.z = 0.0;
+      velocity_pub_->publish(stop_cmd);
+      return;
+    }
+  }
+
   // Convert command to velocity
   geometry_msgs::msg::Twist velocity = commandToVelocity(command);
 
@@ -191,6 +218,14 @@ void MotionController::yawCallback(const std_msgs::msg::Float64::SharedPtr msg)
       publishVelocity(0.0, 0.0, rotation_state_.angular_velocity);
     }
   }
+}
+
+void MotionController::wallCallback(const soar_rosbot_msgs::msg::WallDetection::SharedPtr msg)
+{
+  front_wall_distance_ = msg->front_distance;
+  wall_data_received_ = true;
+
+  RCLCPP_DEBUG(this->get_logger(), "Wall detection: front_distance=%.2fm", front_wall_distance_);
 }
 
 void MotionController::startRotation(double target_yaw, double angular_velocity)
